@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Event Map</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <form id="preferencesForm">
+        <label for="categories">Select Categories:</label>
+        <select id="categories" name="categories" multiple>
+            <option value="music">Music</option>
+            <option value="sports">Sports</option>
+            <option value="art">Art</option>
+        </select>
+
+        <label for="location">Location:</label>
+        <input type="text" id="location" name="location">
+
+        <label for="startDate">Start Date:</label>
+        <input type="date" id="startDate" name="startDate">
+
+        <label for="endDate">End Date:</label>
+        <input type="date" id="endDate" name="endDate">
+
+        <button type="submit">Submit</button>
+    </form>
+
+    <div id="map" style="width: 100%; height: 500px;"></div>
+    <script src="script.js"></script>
+</body>
+</html>
