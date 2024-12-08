@@ -1,0 +1,56 @@
+# GraphHopper Configuration for Karlsruhe with Public Transport, Walking, Biking, and Driving
+
+graphhopper:
+  # Path to the Karlsruhe OpenStreetMap (OSM) data
+  datareader.file: karlsruhe-regbez-latest.osm.pbf
+  
+  # GTFS file for public transport data (Karlsruhe transit data)
+  gtfs.file: karlsruhe_transit.zip
+  
+  # Directory to store the routing graph
+  graph.location: graphs/baden-wuerttemberg-with-transit
+
+  # Profile settings for foot (walking)
+  profiles:
+    - name: foot
+      custom_model_files:
+        - foot.json
+      # Optional: Include elevation model if needed
+      # - /path/to/foot_elevation.json
+
+    # Profile settings for bike (cycling)
+    - name: bike
+      custom_model_files:
+        - bike.json
+      # Optional: Include elevation model if needed
+      # - /path/to/bike_elevation.json
+
+    # Profile settings for car (driving)
+    - name: car
+      custom_model_files:
+        - car.json
+      
+      
+  # Ignored highways for routing (for example, avoid motorways or trunk roads for foot routes)
+  import.osm.ignored_highways: motorway, trunk
+
+  # Encoded values for the graph (attributes for routing graph, like road access, speed, priority, etc.)
+  graph.encoded_values: foot_access, foot_average_speed, foot_priority, foot_road_access, bike_access, bike_average_speed, car_access, car_average_speed, country, road_class, hike_rating, mtb_rating, bike_priority, bike_road_access, roundabout, road_access
+
+  # Server configuration
+server:
+  application_connectors:
+    - type: http
+      port: 8989           # HTTP port for the API (used for routing requests)
+      bind_host: localhost  # Bind the server to localhost (can be changed for production use)
+
+  admin_connectors:
+    - type: http
+      port: 8990           # Admin port for monitoring the server
+      bind_host: localhost  # Bind the admin interface to localhost
+
+# Optional server tuning settings (can be omitted if not needed)
+# server.max_threads: 100  # Max number of threads for handling requests
+# logging:
+#   level: info  # Log level (options: debug, info, warn, error)
+#   log_file: /path/to/logs/graphhopper.log  # Log file path

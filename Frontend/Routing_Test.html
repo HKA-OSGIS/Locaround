@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://tiles.versatiles.org/assets/maplibre-gl/maplibre-gl.js"></script>
+  <link href="https://tiles.versatiles.org/assets/maplibre-gl/maplibre-gl.css" rel="stylesheet" />
+  <script src="https://unpkg.com/@mapbox/polyline"></script>
+  <style>
+    body { margin: 0; }
+    #map { width: 100%; height: 100vh; }
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 999;
+      font-family: Arial, sans-serif;
+    }
+    #controls label {
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    #controls .color-box {
+      width: 16px;
+      height: 16px;
+      display: inline-block;
+      margin-right: 5px;
+      border-radius: 3px;
+    }
+    #route-info {
+      position: absolute;
+      bottom: 10px;
+      left: 10px;
+      background: white;
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 999;
+      display: none;
+      font-family: Arial, sans-serif;
+    }
+  </style>
+  <script>
+    var lastClickPos;
+    var map;
+
+    function init() {
+      map = new maplibregl.Map({
+        container: 'map',
+        style: 'https://tiles.versatiles.org/assets/styles/colorful.json',
+        center: [8.4043, 49.0145], // Center map on Karlsruhe
+        zoom: 14
+      });
+
+      map.addControl(new maplibregl.NavigationControl());
+
+      // Add route layers for each transportation mode
+      const transportModes = ['foot', 'bike', 'car', 'public_transport'];
+      const colors = {
+        foot: '#f00',
+        bike: '#00f',
+        car: '#0f0',
+        public_transport: '#ffa500'
+      };
+
+      // Populate the controls with color boxes
+      const controlsDiv = document.getElementById('controls');
+      transportModes.forEach(mode => {
+        const label = document.createElement('label');
+        label.innerHTML = `
+          <span class="color-box" style="background-color: ${colors[mode]};"></span>
+          <input type="checkbox" value="${mode}" checked /> ${mode.charAt(0).toUpperCase() + mode.slice(1).replace('_', ' ')}
+        `;
+        controlsDiv.appendChild(label);
+      });
+
+      map.on('load', () => {
+        transportModes.forEach(mode => {
+          map.addSource(`route_${mode}`, {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              geometry: {
+                type: 'LineString',
+                coordinates: []
+              }
+            }
+          });
+
+          map.addLayer({
+            id: `route_${mode}`,
+            type: 'line',
+            source: `route_${mode}`,
+            layout: {},
+            paint: {
+              'line-color': colors[mode],
+              'line-width': 4
+            }
+          });
+        });
+      });
+
+      // Handle map click events to calculate routes
+      map.on('click', async function (e) {
+        if (lastClickPos) {
+          const endPos = e.lngLat;
+
+          const selectedModes = Array.from(document.querySelectorAll('#controls input:checked'))
+            .map(input => input.value);
+
+          // Clear and reset route info
+          const routeInfo = document.getElementById('route-info');
+          routeInfo.style.display = 'none';
+          routeInfo.innerHTML = '';
+
+          // Calculate and display routes for selected transport modes
+          for (const mode of selectedModes) {
+            await fetchAndDisplayRoute(lastClickPos, endPos, mode);
+          }
+
+          lastClickPos = null; // Reset after calculating routes
+        } else {
+          lastClickPos = e.lngLat;
+          console.log(`Start point set at: ${e.lngLat}`);
+        }
+      });
+    }
+
+    async function fetchAndDisplayRoute(start, end, mode) {
+      try {
+        let url;
+        if (mode === 'public_transport') {
+          // Public transport-specific URL
+          url = new URL("http://localhost:8989/route");
+          url.searchParams.append("point", `${start.lat},${start.lng}`);
+          url.searchParams.append("point", `${end.lat},${end.lng}`);
+          url.searchParams.append("pt.earliest_departure_time", new Date().toISOString());
+          url.searchParams.append("profile", "pt");
+          url.searchParams.append("pt.access_profile", "foot");
+          url.searchParams.append("pt.egress_profile", "foot");
+          url.searchParams.append("locale", "en-US");
+          url.searchParams.append("geometries", "geojson"); // Use GeoJSON for public transport
+        } else {
+          // Foot, bike, or car routing URL
+          url = new URL("http://localhost:8989/route");
+          url.searchParams.append("point", `${start.lat},${start.lng}`);
+          url.searchParams.append("point", `${end.lat},${end.lng}`);
+          url.searchParams.append("profile", mode);
+          url.searchParams.append("geometries", "polyline");
+        }
+
+        const response = await fetch(url);
+        if (!response.ok) throw new Error(`Error fetching route for ${mode}`);
+
+        const json = await response.json();
+        const route = json.paths[0];
+
+        if (mode === 'public_transport') {
+          // Public transport uses GeoJSON directly
+          map.getSource(`route_${mode}`).setData(route.points);
+        } else {
+          // Decode polyline for other transport modes
+          const decodedPoints = polyline.decode(route.points);
+          map.getSource(`route_${mode}`).setData({
+            type: 'Feature',
+            geometry: {
+              type: 'LineString',
+              coordinates: decodedPoints.map(([lat, lon]) => [lon, lat])
+            }
+          });
+        }
+
+        // Update route info
+        const routeInfo = document.getElementById('route-info');
+        routeInfo.style.display = 'block';
+        const info = `<b>${mode.toUpperCase()}</b>: ${(route.distance / 1000).toFixed(2)} km, ${(route.time / 60000).toFixed(1)} min`;
+        const currentContent = routeInfo.innerHTML;
+        routeInfo.innerHTML = currentContent ? `${currentContent}<br>${info}` : info;
+
+        console.log(`${mode} route displayed.`);
+      } catch (error) {
+        console.error(`Error fetching/displaying ${mode} route:`, error);
+      }
+    }
+  </script>
+</head>
+<body onload="init()">
+  <div id="controls"></div>
+  <div id="map"></div>
+  <div id="route-info"></div>
+</body>
+</html>
