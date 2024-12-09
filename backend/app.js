@@ -10,10 +10,10 @@ app.use(bodyParser.json());
 
 //Configuration of PostgreSQL database
 const pool = new Pool({
-    user: 'votre_utilisateur',
-    host: 'localhost',
-    database: 'votre_base_de_donnees',
-    password: 'votre_mot_de_passe',
+    user: 'postgres',                 // Nom d'utilisateur de la base de données
+    host: 'localhost',                // Adresse du serveur de base de données
+    database: 'postgres',                // Nom de la base de données
+    password: 'nouveau_mot_de_passe',
     port: 5432,
 });
 
