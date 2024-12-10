@@ -4,7 +4,7 @@
   "description": "Backend for Interactive Event Map with Personalized Recommendations and Optimized Route Planning",
   "main": "app.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node app.js"
   },
   "dependencies": {
     "express": "^4.17.1",

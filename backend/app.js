@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
-const fetch = require('node-fetch'); // Assurez-vous d'installer node-fetch
+const fetch = require('node-fetch'); // Node-fetch should be installed
 
 const app = express();
 const port = 3000;
@@ -17,6 +17,11 @@ const pool = new Pool({
   database: 'postgres',
   password: 'nouveau_mot_de_passe',
   port: 5432,
+});
+
+// Route to the root
+app.get('/', (req, res) => {
+  res.send('Bienvenue sur le serveur backend de Locaround!');
 });
 
 // Event API
@@ -49,7 +54,9 @@ app.get('/events', async (req, res) => {
 
 // Recommendation API (placeholder)
 app.get('/recommendations', async (req, res) => {
+    
   // Implement recommendation logic here
+    
   res.json([]);
 });
 
