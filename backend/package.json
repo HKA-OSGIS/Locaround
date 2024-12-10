@@ -1,19 +1,16 @@
 {
-  "name": "backend",
+  "name": "event-map-backend",
   "version": "1.0.0",
+  "description": "Backend for Interactive Event Map with Personalized Recommendations and Optimized Route Planning",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "axios": "^1.7.9",
-    "body-parser": "^1.20.3",
-    "express": "^4.21.2",
-    "mongoose": "^8.8.3",
-    "pg": "^8.13.1"
-  },
-  "description": ""
+    "express": "^4.17.1",
+    "cors": "^2.8.5",
+    "body-parser": "^1.19.0",
+    "pg": "^8.6.0",
+    "node-fetch": "^2.6.1"
+  }
 }

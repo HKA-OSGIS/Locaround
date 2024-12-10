@@ -1,51 +1,77 @@
 const express = require('express');
+const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
-const axios = require('axios');
+const fetch = require('node-fetch'); // Assurez-vous d'installer node-fetch
+
 const app = express();
 const port = 3000;
 
-// Middleware
+app.use(cors());
 app.use(bodyParser.json());
 
-//Configuration of PostgreSQL database
+// PostgreSQL connection pool
 const pool = new Pool({
-    user: 'postgres',                 // Nom d'utilisateur de la base de données
-    host: 'localhost',                // Adresse du serveur de base de données
-    database: 'postgres',                // Nom de la base de données
-    password: 'nouveau_mot_de_passe',
-    port: 5432,
+  user: 'postgres',
+  host: 'localhost',
+  database: 'postgres',
+  password: 'nouveau_mot_de_passe',
+  port: 5432,
 });
 
-// Routes
-app.get('/', (req, res) => {
-    res.send('API is running');
+// Event API
+app.get('/events', async (req, res) => {
+  const { category, location, date } = req.query;
+  let query = 'SELECT * FROM events WHERE 1=1';
+  const values = [];
+
+  if (category) {
+    values.push(category);
+    query += ' AND category = $' + values.length;
+  }
+  if (location) {
+    values.push(location);
+    query += ' AND location = $' + values.length;
+  }
+  if (date) {
+    values.push(date);
+    query += ' AND date = $' + values.length;
+  }
+
+  try {
+    const result = await pool.query(query, values);
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
 });
 
-// Exemple of route for events
-app.get('/api/events', async (req, res) => {
-    try {
-        const result = await pool.query('SELECT * FROM events');
-        res.status(200).json(result.rows);
-    } catch (err) {
-        console.error(err);
-        res.sendStatus(500);
-    }
+// Recommendation API (placeholder)
+app.get('/recommendations', async (req, res) => {
+  // Implement recommendation logic here
+  res.json([]);
 });
 
-// Exemple de route pour le routage
-app.get('/api/routes', async (req, res) => {
-    const { start, end } = req.query;
-    const url = `http://localhost:5000/route/v1/driving/${start};${end}?overview=false&geometries=geojson`;
+// Routing API (integrate with GraphHopper)
+app.post('/route', async (req, res) => {
+  const { start, end, mode } = req.body;
+  try {
+    let url = new URL('http://localhost:8989/route');
+    url.searchParams.append('point', `${start.lat},${start.lng}`);
+    url.searchParams.append('point', `${end.lat},${end.lng}`);
+    url.searchParams.append('profile', mode);
+    url.searchParams.append('geometries', 'polyline');
 
-    try {
-        const response = await axios.get(url);
-        res.status(200).json(response.data);
-    } catch (error) {
-        res.status(500).send('Error fetching route');
-    }
+    const response = await fetch(url);
+    const json = await response.json();
+    res.json(json);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server Error');
+  }
 });
 
 app.listen(port, () => {
-    console.log(`Server running at http://localhost:${port}`);
+  console.log(`Server running at http://localhost:${port}`);
 });
