@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Integrated Map and Journey Planner</title>
+    <title>Locaround</title>
     <script src="https://tiles.versatiles.org/assets/maplibre-gl/maplibre-gl.js"></script>
     <link href="https://tiles.versatiles.org/assets/maplibre-gl/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/@mapbox/polyline"></script>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
             margin: 0;
             padding: 0;
-            background-color: #f4f4f4;
+            background-color: #e9ecef;
         }
         .navbar {
-            background-color: #007BFF;
+            background-color: #81e299; /* Pale green */
             padding: 1rem;
             color: white;
             display: flex;
@@ -24,60 +24,56 @@
         }
         .navbar h1 {
             margin: 0;
-            font-size: 1.5rem;
+            font-size: 1.8rem;
         }
         .search-container {
             display: flex;
-            gap: 1rem;
+            gap: 0.5rem;
             align-items: center;
         }
-        .search-container input, .search-container select {
+        .search-container input, .search-container select, .search-container button {
             padding: 0.5rem;
             font-size: 1rem;
             border: none;
             border-radius: 5px;
         }
         .search-container button {
-            padding: 0.5rem 1rem;
-            font-size: 1rem;
-            background-color: #28A745;
+            background-color: #08b4aeaa; /* Light blue */
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            padding: 0.4rem 0.8rem; /* Smaller padding for the search button */
+        }
+        .search-container button:hover {
+            background-color: #038479; /* Darker blue on hover */
+        }
+        .location-button {
+            background-color: #6c757d; /* Different color for location buttons */
             color: white;
             border: none;
             border-radius: 5px;
+            padding: 0.1rem 0.3rem; /* Smaller padding for location buttons */
             cursor: pointer;
+            transition: background-color 0.3s;
+            font-size: 0.8rem; /* Smaller font size */
         }
-        .search-container button:hover {
-            background-color: #218838;
+        .location-button:hover {
+            background-color: #5a6268; /* Darker shade on hover */
         }
         #map {
             width: 100%;
             height: 70vh;
+            margin-top: 1rem;
         }
-        .routes-container {
-            margin: 1rem;
-            padding: 1rem;
+        .route-info {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
             background-color: #fff;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        .route {
-            margin-bottom: 1rem;
+            border-top: 1px solid #ccc;
             padding: 1rem;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-        }
-        .route.fastest {
-            border-color: #28A745;
-            background-color: #e9f9e9;
-        }
-        .dropdown {
-            margin: 1rem;
-        }
-        .dropdown select {
-            padding: 0.5rem;
-            font-size: 1rem;
-            border: 1px solid #ccc;
-            border-radius: 5px;
+            text-align: center;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
         }
     </style>
 </head>
@@ -87,13 +83,16 @@
     <h1>Locaround</h1>
     <div class="search-container">
         <input type="text" placeholder="Enter departure" id="departure">
+        <button class="location-button" onclick="setLocation('departure')">Use My Location</button>
         <input type="text" placeholder="Enter destination" id="destination">
+        <button class="location-button" onclick="setLocation('destination')">Use My Location</button>
         <select id="transport-mode">
             <option value="">Select Mode</option>
             <option value="foot">Walking</option>
             <option value="bike">Bike</option>
             <option value="car">Driving</option>
             <option value="public_transport">Public Transport</option>
+            <option value="scooter">Scooter</option>
         </select>
         <button onclick="searchJourney()">Search</button>
     </div>
@@ -101,21 +100,15 @@
 
 <div id="map"></div>
 
-<div class="dropdown">
-    <label for="routes-dropdown">Select Route:</label>
-    <select id="routes-dropdown" onchange="highlightRoute()">
-        <option value="">-- No routes available --</option>
-    </select>
-</div>
-
-<div class="routes-container" id="routes">
-    <!-- Routes will be displayed here -->
+<div class="route-info" id="route-info">
+    <!-- Route information will be displayed here -->
 </div>
 
 <script>
     var map;
     var departureMarker = null;
     var destinationMarker = null;
+    var isSettingDeparture = true;
 
     function initMap() {
         map = new maplibregl.Map({
@@ -128,7 +121,7 @@
         map.addControl(new maplibregl.NavigationControl());
 
         map.on('load', () => {
-            map.addSource('route', {
+            map.addSource('route-fastest', {
                 type: 'geojson',
                 data: {
                     type: 'Feature',
@@ -140,25 +133,22 @@
             });
 
             map.addLayer({
-                id: 'route',
+                id: 'route-fastest',
                 type: 'line',
-                source: 'route',
+                source: 'route-fastest',
                 layout: {},
                 paint: {
-                    'line-color': '#FF0000',
+                    'line-color': '#00FF00',
                     'line-width': 4
                 }
             });
 
             map.on('click', (e) => {
                 const coordinates = e.lngLat;
-                const originalEvent = e.originalEvent;
-
-                if (originalEvent.button === 0) { // Left click
+                if (isSettingDeparture) {
                     setDeparture(coordinates);
-                } else if (originalEvent.button === 2) { // Right click
+                } else {
                     setDestination(coordinates);
-                    e.originalEvent.preventDefault(); // Prevent the default context menu
                 }
             });
         });
@@ -168,7 +158,7 @@
         if (departureMarker) {
             departureMarker.setLngLat(coordinates);
         } else {
-            departureMarker = new maplibregl.Marker()
+            departureMarker = new maplibregl.Marker({ color: 'green' })
                 .setLngLat(coordinates)
                 .setDraggable(true)
                 .addTo(map);
@@ -179,6 +169,7 @@
             });
         }
         document.getElementById('departure').value = `${coordinates.lat}, ${coordinates.lng}`;
+        isSettingDeparture = false;
     }
 
     function setDestination(coordinates) {
@@ -196,13 +187,33 @@
             });
         }
         document.getElementById('destination').value = `${coordinates.lat}, ${coordinates.lng}`;
+        isSettingDeparture = true;
+    }
+
+    async function setLocation(type) {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition((position) => {
+                const coordinates = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude
+                };
+                if (type === 'departure') {
+                    setDeparture(coordinates);
+                } else {
+                    setDestination(coordinates);
+                }
+            }, (error) => {
+                console.error('Error getting location:', error);
+                alert('Unable to retrieve your location. Please check your browser settings.');
+            });
+        } else {
+            alert('Geolocation is not supported by this browser.');
+        }
     }
 
     async function geocodeLocation(location) {
         const apiKey = '1b539ea38f7d4931b362e4c7ba9249b4'; // Replace with your actual OpenCage API key
         const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(location)}&key=${apiKey}`;
-
-        console.log(`Geocoding URL: ${url}`); // Log the geocoding URL
 
         const response = await fetch(url);
         if (!response.ok) {
@@ -217,7 +228,6 @@
         }
 
         const geometry = data.results[0].geometry;
-        console.log(`Geocoded ${location}:`, geometry); // Log the coordinates
         return geometry;
     }
 
@@ -235,22 +245,22 @@
             const start = await geocodeLocation(departure);
             const end = await geocodeLocation(destination);
 
-            console.log(`Start coordinates: ${start.lat}, ${start.lng}`);
-            console.log(`End coordinates: ${end.lat}, ${end.lng}`);
+            const fastestRoute = await fetchRoutes(start, end, transportMode, 'fastest');
+            displayRoute(fastestRoute);
 
-            fetchRoutes(start, end, transportMode);
+            // Zoom the map to fit both points
+            const bounds = new maplibregl.LngLatBounds(start, end);
+            map.fitBounds(bounds, { padding: 50 });
         } catch (error) {
             console.error('Error during geocoding or fetching routes:', error);
             alert('Error fetching routes. Please check your inputs and try again.');
         }
     }
 
-    async function fetchRoutes(start, end, mode) {
+    async function fetchRoutes(start, end, mode, type) {
         try {
             const apiKey = '46bcaedd-5970-4764-ae07-4d127766f4bd'; // Replace with your GraphHopper API key
-            const url = `https://graphhopper.com/api/1/route?point=${start.lat},${start.lng}&point=${end.lat},${end.lng}&profile=${mode}&geometries=geojson&key=${apiKey}`;
-
-            console.log(`GraphHopper API URL: ${url}`); // Log the GraphHopper API URL
+            const url = `https://graphhopper.com/api/1/route?point=${start.lat},${start.lng}&point=${end.lat},${end.lng}&profile=${mode}&weighting=${type === 'eco' ? 'green' : 'fastest'}&geometries=geojson&key=${apiKey}`;
 
             const response = await fetch(url);
             if (!response.ok) {
@@ -260,9 +270,9 @@
             }
 
             const data = await response.json();
-            console.log('GraphHopper API Response:', data); // Log the API response
+            console.log(data); // Log the response to check its structure
 
-            if (!data.paths || data.paths.length === 0) {
+            if (!data || !data.paths || !Array.isArray(data.paths) || data.paths.length === 0) {
                 console.error('No routes available. Please check your inputs.');
                 alert('No routes available. Please check your inputs.');
                 return;
@@ -279,52 +289,44 @@
                 }
             };
 
-            console.log('Route Geometry:', routeGeometry); // Log the route geometry
+            // Set the route data to the map
+            if (type === 'fastest') {
+                map.getSource('route-fastest').setData(routeGeometry);
+            }
 
-            map.getSource('route').setData(routeGeometry);
-
-            displayRoutes([
-                { mode: mode, time: `${(route.time / 60000).toFixed(1)} mins`, distance: `${(route.distance / 1000).toFixed(2)} km`, fastest: true }
-            ]);
+            return { mode: mode, time: route.time / 1000, distance: route.distance / 1000, fastest: type === 'fastest' };
         } catch (error) {
             console.error('Error fetching route:', error);
             alert('Error fetching routes. Please check your inputs and try again.');
         }
     }
 
-    function displayRoutes(routes) {
-        const routesContainer = document.getElementById('routes');
-        const dropdown = document.getElementById('routes-dropdown');
-        routesContainer.innerHTML = '';
-        dropdown.innerHTML = '<option value="">-- Select a route --</option>';
+    function formatTime(seconds) {
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const remainingMinutes = minutes % 60;
 
-        routes.forEach((route, index) => {
-            const routeElement = document.createElement('div');
-            routeElement.classList.add('route');
-            if (route.fastest) routeElement.classList.add('fastest');
-
-            routeElement.innerHTML = `
-                <p><strong>Route ${index + 1}</strong></p>
-                <p>Mode: ${route.mode}</p>
-                <p>Time: ${route.time}</p>
-                <p>Distance: ${route.distance}</p>
-            `;
-
-            routesContainer.appendChild(routeElement);
-
-            const option = document.createElement('option');
-            option.value = index;
-            option.text = `Route ${index + 1} - ${route.time} (${route.distance})`;
-            dropdown.add(option);
-        });
+        if (hours > 0) {
+            return `${hours}h ${remainingMinutes}m`;
+        } else {
+            return `${minutes}m`;
+        }
     }
 
-    function highlightRoute() {
-        const selectedIndex = document.getElementById('routes-dropdown').value;
-        if (selectedIndex === "") return;
+    function displayRoute(route) {
+        const routeInfo = document.getElementById('route-info');
+        if (!route) return; // Skip if route is undefined
 
-        alert(`You selected Route ${parseInt(selectedIndex) + 1}`);
-        // Optionally, you can add logic to adjust the map view or style for the selected route.
+        const formattedTime = formatTime(route.time);
+        const formattedDistance = `${(route.distance).toFixed(1)} km`;
+        const routeName = 'The Fastest Route';
+
+        routeInfo.innerHTML = `
+            <p><strong>${routeName}</strong></p>
+            <p>Mode: ${route.mode}</p>
+            <p>Time: ${formattedTime}</p>
+            <p>Distance: ${formattedDistance}</p>
+        `;
     }
 </script>
 
