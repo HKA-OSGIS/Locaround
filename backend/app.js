@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
-const fetch = require('node-fetch'); // Node-fetch should be installed
 
 const app = express();
 const port = 3000;
@@ -14,7 +13,7 @@ app.use(bodyParser.json());
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
-  database: 'postgres',
+  database: 'osm_data',
   password: 'nouveau_mot_de_passe',
   port: 5432,
 });
@@ -26,7 +25,7 @@ app.get('/', (req, res) => {
 
 // Event API
 app.get('/events', async (req, res) => {
-  const { category, location, date } = req.query;
+  const { category, location, start_date, end_date } = req.query;
   let query = 'SELECT * FROM events WHERE 1=1';
   const values = [];
 
@@ -38,9 +37,13 @@ app.get('/events', async (req, res) => {
     values.push(location);
     query += ' AND location = $' + values.length;
   }
-  if (date) {
-    values.push(date);
-    query += ' AND date = $' + values.length;
+  if (start_date) {
+    values.push(start_date);
+    query += ' AND start_date = $' + values.length;
+  }
+  if (end_date) {
+    values.push(end_date);
+    query += ' AND end_date = $' + values.length;
   }
 
   try {
@@ -52,31 +55,74 @@ app.get('/events', async (req, res) => {
   }
 });
 
-// Recommendation API (placeholder)
-app.get('/recommendations', async (req, res) => {
-    
-  // Implement recommendation logic here
-    
-  res.json([]);
-});
+// Places API
+app.get('/places', async (req, res) => {
+  const { type, location } = req.query;
+  let queryPoints = `
+    SELECT osm_id, name, ST_Y(way) AS latitude, ST_X(way) AS longitude
+    FROM planet_osm_point
+    WHERE 1=1
+  `;
 
-// Routing API (integrate with GraphHopper)
-app.post('/route', async (req, res) => {
-  const { start, end, mode } = req.body;
+  let queryPolygons = `
+    SELECT osm_id, name, ST_Y(ST_Centroid(way)) AS latitude, ST_X(ST_Centroid(way)) AS longitude
+    FROM planet_osm_polygon
+    WHERE 1=1
+  `;
+
+  const valuesPoints = [];
+  const valuesPolygons = [];
+
+  // Filter by type
+  if (type) {
+    switch (type) {
+      case 'museum':
+        queryPoints += ' AND tourism = $' + (valuesPoints.length + 1);
+        valuesPoints.push('museum');
+        break;
+      case 'park':
+        queryPoints += ' AND leisure = $' + (valuesPoints.length + 1);
+        valuesPoints.push('park');
+        break;
+      case 'stadium':
+        queryPoints += ' AND leisure = $' + (valuesPoints.length + 1);
+        valuesPoints.push('stadium');
+        break;
+      case 'restaurant':
+        queryPoints += ' AND amenity = $' + (valuesPoints.length + 1);
+        valuesPoints.push('restaurant');
+        queryPolygons += ' AND amenity = $' + (valuesPolygons.length + 1);
+        valuesPolygons.push('restaurant');
+        break;
+      // Add more cases as needed
+      default:
+        return res.status(400).send('Invalid type');
+    }
+  }
+
+  // Filter by location
+  if (location) {
+    queryPoints += ' AND "addr:housenumber" = $' + (valuesPoints.length + 1);
+    valuesPoints.push(location);
+    queryPolygons += ' AND "addr:housenumber" = $' + (valuesPolygons.length + 1);
+    valuesPolygons.push(location);
+  }
+
   try {
-    let url = new URL('http://localhost:8989/route');
-    url.searchParams.append('point', `${start.lat},${start.lng}`);
-    url.searchParams.append('point', `${end.lat},${end.lng}`);
-    url.searchParams.append('profile', mode);
-    url.searchParams.append('geometries', 'polyline');
-
-    const response = await fetch(url);
-    const json = await response.json();
-    res.json(json);
+    const resultPoints = await pool.query(queryPoints, valuesPoints);
+    const resultPolygons = await pool.query(queryPolygons, valuesPolygons);
+    const combinedResults = resultPoints.rows.concat(resultPolygons.rows);
+    res.json(combinedResults);
   } catch (err) {
     console.error(err);
     res.status(500).send('Server Error');
   }
+});
+
+// Recommendation API (placeholder)
+app.get('/recommendations', async (req, res) => {
+  // Implement recommendation logic here
+  res.json([]);
 });
 
 app.listen(port, () => {
