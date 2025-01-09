@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Locaround</title>
+</head>
+<body>
+    <h1>Locaround</h1>
+    <form id="filter-form">
+        <label>
+            <input type="checkbox" name="location" value="outdoor"> Outdoor
+        </label>
+        <label>
+            <input type="checkbox" name="location" value="indoor"> Indoor
+        </label>
+        <br>
+        <label>
+            <input type="checkbox" name="role" value="spectator"> Watch
+        </label>
+        <label>
+            <input type="checkbox" name="role" value="actor"> Move
+        </label>
+        <br>
+        <label>
+            <input type="checkbox" name="group" value="solo"> Solo
+        </label>
+        <label>
+            <input type="checkbox" name="group" value="group"> In group
+        </label>
+        <br>
+        <label>
+            Date: <input type="date" name="date" id="date">
+        </label>
+        <br>
+        <button type="submit">Research</button>
+    </form>
+    <div id="results"></div>
+
+    <script>
+        document.getElementById('filter-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const location = document.querySelector('input[name="location"]:checked')?.value;
+            const role = Array.from(document.querySelectorAll('input[name="role"]:checked')).map(input => input.value);
+            const group = document.querySelector('input[name="group"]:checked')?.value;
+            const date = document.getElementById('date').value;
+            const indoor = location === 'indoor';
+
+            const params = new URLSearchParams({
+                location: location || '',
+                role: role.join(','),
+                group: group || '',
+                date: date || '',
+                indoor: indoor
+            });
+
+            fetch(`http://localhost:3000/places?${params.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('results').innerHTML = JSON.stringify(data, null, 2);
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    </script>
+</body>
+</html>
