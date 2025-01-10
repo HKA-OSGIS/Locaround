@@ -11,7 +11,7 @@ const pool = new Pool({
 });
 
 // Remplacez par votre clé API
-const API_KEY = 'XxXxXxXxXxXxXxXxXxXxXxXx';
+const API_KEY = '1a7cd40555efc2cffff7ce3778bfe016';
 const API_URL = 'https://v1.rugby.api-sports.io/fixtures';
 
 async function fetchRugbyEvents() {
