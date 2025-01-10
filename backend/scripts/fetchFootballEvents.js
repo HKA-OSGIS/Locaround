@@ -1,7 +1,7 @@
 const axios = require('axios');
 const { Pool } = require('pg');
 
-const API_KEY = 'XxXxXxXxXxXxXxXxXxXxXxXx';
+const API_KEY = '1a7cd40555efc2cffff7ce3778bfe016';
 const API_URL = 'https://v3.football.api-sports.io/fixtures';
 
 // Configuration database connexions
