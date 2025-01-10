@@ -16,24 +16,17 @@
         </label>
         <br>
         <label>
-            <input type="checkbox" name="role" value="spectator"> Watch
+            <input type="checkbox" name="role" value="spectator"> Sitting down
         </label>
         <label>
-            <input type="checkbox" name="role" value="actor"> Move
-        </label>
-        <br>
-        <label>
-            <input type="checkbox" name="group" value="solo"> Solo
-        </label>
-        <label>
-            <input type="checkbox" name="group" value="group"> In group
+            <input type="checkbox" name="role" value="actor"> Standing up
         </label>
         <br>
         <label>
             Date: <input type="date" name="date" id="date">
         </label>
         <br>
-        <button type="submit">Research</button>
+        <button type="submit">Rechercher</button>
     </form>
     <div id="results"></div>
 
@@ -41,18 +34,14 @@
         document.getElementById('filter-form').addEventListener('submit', function(event) {
             event.preventDefault();
 
-            const location = document.querySelector('input[name="location"]:checked')?.value;
+            const location = Array.from(document.querySelectorAll('input[name="location"]:checked')).map(input => input.value);
             const role = Array.from(document.querySelectorAll('input[name="role"]:checked')).map(input => input.value);
-            const group = document.querySelector('input[name="group"]:checked')?.value;
             const date = document.getElementById('date').value;
-            const indoor = location === 'indoor';
 
             const params = new URLSearchParams({
-                location: location || '',
+                location: location.join(','),
                 role: role.join(','),
-                group: group || '',
-                date: date || '',
-                indoor: indoor
+                date: date || ''
             });
 
             fetch(`http://localhost:3000/places?${params.toString()}`)
