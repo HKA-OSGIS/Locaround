@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
   `;
 
   let queryPolygons = `
-    SELECT osm_id, name, ST_Y(ST_Centroid(way)) AS latitude, ST_X(ST_Centroid(way)) AS longitude
+    SELECT osm_id, name, ST_Y(centroid) AS latitude, ST_X(centroid) AS longitude
     FROM planet_osm_polygon
     WHERE 1=1
   `;
