@@ -12,7 +12,7 @@ const pool = new Pool({
 });
 
 router.get('/', async (req, res) => {
-  const { type, location, role, group, date } = req.query;
+  const { type, location, role, date, indoor, outdoor, spectator, actor } = req.query;
   let queryPoints = `
     SELECT osm_id, name, ST_Y(way) AS latitude, ST_X(way) AS longitude
     FROM planet_osm_point
@@ -20,7 +20,7 @@ router.get('/', async (req, res) => {
   `;
 
   let queryPolygons = `
-    SELECT osm_id, name, ST_Y(ST_Centroid(way)) AS latitude, ST_X(ST_Centroid(way)) AS longitude
+    SELECT osm_id, name, ST_Y(centroid) AS latitude, ST_X(centroid) AS longitude
     FROM planet_osm_polygon
     WHERE 1=1
   `;
@@ -32,7 +32,7 @@ router.get('/', async (req, res) => {
   if (type) {
     switch (type) {
       case 'museum':
-        queryPoints += ' AND tourism = $' + (valuesPoints.length + 1);
+        queryPoints += ' AND amenity = $' + (valuesPoints.length + 1);
         valuesPoints.push('museum');
         break;
       case 'park':
@@ -49,6 +49,48 @@ router.get('/', async (req, res) => {
         queryPolygons += ' AND amenity = $' + (valuesPolygons.length + 1);
         valuesPolygons.push('restaurant');
         break;
+      case 'cinema':
+        queryPoints += ' AND amenity = $' + (valuesPoints.length + 1);
+        valuesPoints.push('cinema');
+        queryPolygons += ' AND amenity = $' + (valuesPolygons.length + 1);
+        valuesPolygons.push('cinema');
+        break;
+      case 'theatre':
+        queryPoints += ' AND amenity = $' + (valuesPoints.length + 1);
+        valuesPoints.push('theatre');
+        queryPolygons += ' AND amenity = $' + (valuesPolygons.length + 1);
+        valuesPolygons.push('theatre');
+        break;
+      case 'bar':
+        queryPoints += ' AND amenity = $' + (valuesPoints.length + 1);
+        valuesPoints.push('bar');
+        queryPolygons += ' AND amenity = $' + (valuesPolygons.length + 1);
+        valuesPolygons.push('bar');
+        break;
+      case 'cafe':
+        queryPoints += ' AND amenity = $' + (valuesPoints.length + 1);
+        valuesPoints.push('cafe');
+        queryPolygons += ' AND amenity = $' + (valuesPolygons.length + 1);
+        valuesPolygons.push('cafe');
+        break;
+      case 'library':
+        queryPoints += ' AND amenity = $' + (valuesPoints.length + 1);
+        valuesPoints.push('library');
+        queryPolygons += ' AND amenity = $' + (valuesPolygons.length + 1);
+        valuesPolygons.push('library');
+        break;
+      case 'theme_park':
+        queryPoints += ' AND tourism = $' + (valuesPoints.length + 1);
+        valuesPoints.push('theme_park');
+        queryPolygons += ' AND tourism = $' + (valuesPolygons.length + 1);
+        valuesPolygons.push('theme_park');
+        break;
+      case 'sports_centre':
+        queryPoints += ' AND leisure = $' + (valuesPoints.length + 1);
+        valuesPoints.push('sports_centre');
+        queryPolygons += ' AND leisure = $' + (valuesPolygons.length + 1);
+        valuesPolygons.push('sports_centre');
+        break;
       // Add more cases as needed
       default:
         return res.status(400).send('Invalid type');
@@ -57,41 +99,42 @@ router.get('/', async (req, res) => {
 
   // Filter by location
   if (location) {
-    const locations = location.split(',');
-    if (locations.includes('outdoor')) {
-      queryPoints += ' AND indoor = false';
-      queryPolygons += ' AND indoor = false';
-    }
-    if (locations.includes('indoor')) {
-      queryPoints += ' AND indoor = true';
-      queryPolygons += ' AND indoor = true';
-    }
+    queryPoints += ' AND "addr:housenumber" = $' + (valuesPoints.length + 1);
+    valuesPoints.push(location);
+    queryPolygons += ' AND "addr:housenumber" = $' + (valuesPolygons.length + 1);
+    valuesPolygons.push(location);
   }
 
-  // Filter by role
-  if (role) {
-    const roles = role.split(',');
-    if (roles.includes('spectator')) {
-      queryPoints += ' AND spectator = true';
-      queryPolygons += ' AND spectator = true';
+  // Filter by indoor/outdoor
+  if (indoor !== undefined || outdoor !== undefined) {
+    const conditionsPoints = [];
+    const conditionsPolygons = [];
+    if (indoor === 'true') {
+      conditionsPoints.push('indoor = true');
+      conditionsPolygons.push('indoor = true');
     }
-    if (roles.includes('actor')) {
-      queryPoints += ' AND actor = true';
-      queryPolygons += ' AND actor = true';
+    if (outdoor === 'true') {
+      conditionsPoints.push('outdoor = true');
+      conditionsPolygons.push('outdoor = true');
     }
+    queryPoints += ` AND (${conditionsPoints.join(' OR ')})`;
+    queryPolygons += ` AND (${conditionsPolygons.join(' OR ')})`;
   }
 
-  // Filter by group
-  if (group) {
-    const groups = group.split(',');
-    if (groups.includes('solo')) {
-      queryPoints += ' AND solo = true';
-      queryPolygons += ' AND solo = true';
+  // Filter by spectator/actor
+  if (spectator !== undefined || actor !== undefined) {
+    const conditionsPoints = [];
+    const conditionsPolygons = [];
+    if (spectator === 'true') {
+      conditionsPoints.push('spectator = true');
+      conditionsPolygons.push('spectator = true');
     }
-    if (groups.includes('group')) {
-      queryPoints += ' AND "group" = true';
-      queryPolygons += ' AND "group" = true';
+    if (actor === 'true') {
+      conditionsPoints.push('actor = true');
+      conditionsPolygons.push('actor = true');
     }
+    queryPoints += ` AND (${conditionsPoints.join(' OR ')})`;
+    queryPolygons += ` AND (${conditionsPolygons.join(' OR ')})`;
   }
 
   // Filter by date

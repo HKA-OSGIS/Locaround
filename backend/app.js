@@ -25,7 +25,7 @@ const pool = new Pool({
 
 // Route to the root
 app.get('/', (req, res) => {
-  res.send('Welcome on the backend server of Locaround!');
+  res.send('Bienvenue sur le serveur backend de Locaround!');
 });
 
 // Event API
@@ -44,7 +44,6 @@ app.get('/recommendations', async (req, res) => {
 setInterval(async () => {
   await fetchFootballEvents();
   await fetchRugbyEvents();
-  await fetchCulturalEvents();
 }, 3600000); // Every hour
 
 app.listen(port, () => {
