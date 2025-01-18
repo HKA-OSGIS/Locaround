@@ -3,7 +3,6 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const { Pool } = require('pg');
 const placesRouter = require('./routes/places');
-const eventsRouter = require('./routes/events');
 const fetchFootballEvents = require('./scripts/fetchFootballEvents');
 const fetchRugbyEvents = require('./scripts/fetchRugbyEvents');
 
@@ -27,9 +26,6 @@ const pool = new Pool({
 app.get('/', (req, res) => {
   res.send('Bienvenue sur le serveur backend de Locaround!');
 });
-
-// Event API
-app.use('/events', eventsRouter);
 
 // Places API
 app.use('/places', placesRouter);
