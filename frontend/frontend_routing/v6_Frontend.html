@@ -20,7 +20,7 @@
             height: 100vh;
         }
         #logo {
-            height: 3rem;
+            height: 2rem;
             width: auto;
         }
         .navbar > div:nth-child(1) {
@@ -256,7 +256,7 @@
 <body onload="initMap()">
     <div class="navbar">
         <div>
-            <img src="../../image.png" alt="Website logo" id="logo" />
+            <img src="../../official.png" alt="Website logo" id="logo" />
             <h1>Locaround</h1>
         </div>
         <div class="search-container">
@@ -379,16 +379,102 @@
             }
         }
 
-        async function geocodeLocation(location) {
-            const apiKey = 'c6af2afcb3a247dda1863ac863693ae6';
-            const url = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(location)}&key=${apiKey}`;
-            const response = await fetch(url);
-            const data = await response.json();
-            console.log('Geocode Response:', data);
-            if (data.status.code !== 200 || data.results.length === 0) {
-                throw new Error(`Geocoding error: ${data.status.message}`);
+        async function fetchAllRoutes(start, end) {
+            const apiKey = '8d16c6c9-f52e-4109-b9d1-557a37c0b68d'; // Replace with your GraphHopper API key
+            const modes = ['foot', 'bike', 'car', 'public transport'];
+            const routes = [];
+
+            for (const mode of modes) {
+                const url = `https://graphhopper.com/api/1/route?point=${start.lat},${start.lng}&point=${end.lat},${end.lng}&profile=${mode}&geometries=geojson&key=${apiKey}`;
+                const response = await fetch(url);
+                const data = await response.json();
+                console.log('Route API Response:', data);
+                if (!data.paths || data.paths.length === 0) {
+                    console.error('No paths available in the response');
+                    throw new Error('No routes found. Please check your inputs.');
+                }
+                routes.push({ mode, route: data.paths[0] });
             }
-            return data.results[0].geometry;
+
+            return routes;
+        }
+
+        function displayRoutes(allRoutes) {
+            routes = allRoutes;
+            const routeInfo = document.getElementById('route-info');
+            routeInfo.innerHTML = '';
+
+            const colors = ['#00FF00', '#FF0000', '#0000FF']; // Removed the color for 'public_transport'
+            const modeNames = {
+                'foot': 'Walking',
+                'bike': 'Biking',
+                'car': 'Driving'
+            };
+
+            let fastestRoute = null;
+            let fastestTime = Infinity;
+
+            allRoutes.forEach((routeData, index) => {
+                const route = routeData.route;
+                const routeGeometry = {
+                    type: 'Feature',
+                    geometry: {
+                        type: 'LineString',
+                        coordinates: route.points.coordinates
+                    }
+                };
+
+                map.addSource(`route-${index}`, {
+                    type: 'geojson',
+                    data: routeGeometry
+                });
+
+                map.addLayer({
+                    id: `route-${index}`,
+                    type: 'line',
+                    source: `route-${index}`,
+                    layout: {},
+                    paint: {
+                        'line-color': colors[index % colors.length],
+                        'line-width': 4
+                    }
+                });
+
+                const distance = route.distance; // in meters
+                const time = route.time; // in milliseconds
+
+                if (time < fastestTime) {
+                    fastestTime = time;
+                    fastestRoute = index;
+                }
+
+                const routeItem = document.createElement('div');
+                routeItem.classList.add('route-item');
+                routeItem.dataset.index = index;
+                routeItem.innerHTML = `
+                    <strong>${modeNames[routeData.mode]}:</strong>
+                    <span>${(distance / 1000).toFixed(1)} km</span>
+                    <span>${(time / 60000).toFixed(0)} min</span>
+                `;
+
+                routeItem.addEventListener('click', () => {
+                    selectRoute(index);
+                });
+
+                routeInfo.appendChild(routeItem);
+            });
+
+            if (fastestRoute !== null) {
+                document.querySelector(`.route-item[data-index="${fastestRoute}"]`).classList.add('fastest');
+            }
+        }
+
+        function selectRoute(index) {
+            if (selectedRouteIndex !== -1) {
+                document.querySelector(`.route-item[data-index="${selectedRouteIndex}"]`).classList.remove('selected');
+            }
+            selectedRouteIndex = index;
+            document.querySelector(`.route-item[data-index="${index}"]`).classList.add('selected');
         }
 
         function searchPlaces() {
