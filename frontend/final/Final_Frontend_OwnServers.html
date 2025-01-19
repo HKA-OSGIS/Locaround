@@ -314,7 +314,6 @@
         </div>
     </div>
 
-
     <!-- Turf.js for distance calculations -->
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
@@ -327,8 +326,42 @@
     <!-- Custom Scripts -->
     <script src="map-init.js"></script>       <!-- Map initialization -->
     <script src="filtering.js"></script>      <!-- POI filtering -->
-    <script src="ui-handler.js"></script>     <!-- Dropdown toggle script -->
     <script src="routing.js"></script>        <!-- Route calculation -->
 
+    <!-- UI Handler Script -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add event listeners to stop propagation
+            document.querySelectorAll('.dropdown-content').forEach(function(dropdownContent) {
+                dropdownContent.addEventListener('click', function(event) {
+                    event.stopPropagation();
+                });
+            });
+
+            // Toggle dropdown visibility
+            window.toggleDropdown = function(dropdownId) {
+                const filtersContent = document.getElementById('filters-content');
+                const activitiesContent = document.getElementById('activities-content');
+                const dropdownContent = document.getElementById(`${dropdownId}-content`);
+
+                if (dropdownContent.style.display === 'none' || dropdownContent.style.display === '') {
+                    filtersContent.style.display = 'none';
+                    activitiesContent.style.display = 'none';
+                    dropdownContent.style.display = 'block';
+                } else {
+                    dropdownContent.style.display = 'none';
+                }
+            };
+
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(event) {
+                if (!event.target.closest('.dropdown-container')) {
+                    document.querySelectorAll('.dropdown-content').forEach(function(content) {
+                        content.style.display = 'none';
+                    });
+                }
+            });
+        });
+    </script>
 </body>
 </html>

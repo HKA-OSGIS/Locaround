@@ -170,21 +170,7 @@ function displayPOIs(points = [], polygons = []) {
             }
         });
 
-        // Add Click Event for Points
-        map.on('click', 'pois-points', (e) => {
-            const feature = e.features[0];
-            const coords = feature.geometry.coordinates;
-            const props = feature.properties;
-
-            // Show POI Details
-            new maplibregl.Popup()
-                .setLngLat(coords)
-                .setHTML(`<strong>${props.name || "Unknown Location"}</strong><br>Amenity: ${props.amenity || "N/A"}`)
-                .addTo(map);
-
-            // Set as Destination and Trigger Routing
-            setDestinationAndRoute(coords);
-        });
+        
     }
 
     // Add Polygons Layer (converted to centroids)
