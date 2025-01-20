@@ -363,5 +363,25 @@
             });
         });
     </script>
+
+    <!-- Use My Location Button -->
+    <script>
+        function setLocation(fieldId) {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function (position) {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+                        document.getElementById(fieldId).value = `${lat}, ${lon}`;
+                    },
+                    function (error) {
+                        alert("Geolocation failed: " + error.message);
+                    }
+                );
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
+        }
+    </script>
 </body>
 </html>
