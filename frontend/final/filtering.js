@@ -3,7 +3,6 @@
 //Script for the filtering of the OSM locations
 //---------------------------------------------
 
-
 function calculateBoundingBox(lng, lat, radius) {
     const earthRadius = 6378137; // Earth's radius in meters
 
@@ -18,7 +17,6 @@ function calculateBoundingBox(lng, lat, radius) {
         maxLat: lat + deltaLat
     };
 }
-
 
 // Apply filters with BBOX filtering
 async function applyFilters() {
@@ -36,11 +34,23 @@ async function applyFilters() {
     // Calculate the Bounding Box from the center and radius
     const bbox = calculateBoundingBox(center.lng, center.lat, radius);
 
-    // Apply BBOX in the CQL_FILTER for server-side filtering with URL encoding
-    const bboxParam = `${bbox.minLng},${bbox.minLat},${bbox.maxLng},${bbox.maxLat},EPSG:4326`;
+    // Define the CQL_FILTER for points and polygons
+    const cqlFilterPoint = `
+      BBOX(way, ${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}) AND (
+        (amenity IS NOT NULL) OR
+        (leisure IS NOT NULL) OR
+        (tourism IS NOT NULL)
+      )
+    `;
 
-    const pointURL = `http://localhost:8080/geoserver/LocAround/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=LocAround:planet_osm_point&outputFormat=application/json&bbox=${bboxParam}`;
-    const polygonURL = `http://localhost:8080/geoserver/LocAround/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=LocAround:planet_osm_polygon&outputFormat=application/json&bbox=${bboxParam}`;
+    const cqlFilterPolygon = `
+      BBOX(way, ${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}) AND (
+        (building IN ('public', 'civic', 'commercial', 'retail', 'church', 'school', 'museum', 'stadium', 'landmark'))
+      )
+    `;
+
+    const pointURL = `http://localhost:8080/geoserver/LocAround/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=LocAround:planet_osm_point&outputFormat=application/json&CQL_FILTER=${encodeURIComponent(cqlFilterPoint)}`;
+    const polygonURL = `http://localhost:8080/geoserver/LocAround/ows?service=WFS&version=1.0.0&request=GetFeature&typeName=LocAround:planet_osm_polygon&outputFormat=application/json&CQL_FILTER=${encodeURIComponent(cqlFilterPolygon)}`;
 
     console.log("Point URL:", pointURL);
     console.log("Polygon URL:", polygonURL);
@@ -48,7 +58,7 @@ async function applyFilters() {
     try {
         const [pointResponse, polygonResponse] = await Promise.all([
             fetch(pointURL),
-            fetch(polygonURL)
+            fetch(polygonURL),
         ]);
 
         const pointData = await pointResponse.json();
@@ -169,8 +179,6 @@ function displayPOIs(points = [], polygons = []) {
                 'circle-stroke-color': '#FFFFFF'
             }
         });
-
-        
     }
 
     // Add Polygons Layer (converted to centroids)
