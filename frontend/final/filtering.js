@@ -69,11 +69,9 @@ async function applyFilters() {
         const outdoor = document.querySelector('input[name="environment"][value="outdoor"]').checked;
         const spectator = document.querySelector('input[name="role"][value="spectator"]').checked;
         const actor = document.querySelector('input[name="role"][value="actor"]').checked;
-        const startDate = document.querySelector('input[name="beginning"]').value;
-        const endDate = document.querySelector('input[name="end"]').value;
-
-        const filteredPoints = filterFeatures(pointData.features, activities, center, radius, indoor, outdoor, spectator, actor, startDate, endDate);
-        const filteredPolygons = filterPolygonCentroids(polygonData.features, activities, center, radius, indoor, outdoor, spectator, actor, startDate, endDate);
+        
+        const filteredPoints = filterFeatures(pointData.features, activities, center, radius, indoor, outdoor, spectator, actor);
+        const filteredPolygons = filterPolygonCentroids(polygonData.features, activities, center, radius, indoor, outdoor, spectator, actor);
 
         displayPOIs(filteredPoints, filteredPolygons);
 
@@ -83,7 +81,7 @@ async function applyFilters() {
 }
 
 // Filter polygon features by converting them to point centroids
-function filterPolygonCentroids(features, activities, center, radius, indoor, outdoor, spectator, actor, startDate, endDate) {
+function filterPolygonCentroids(features, activities, center, radius, indoor, outdoor, spectator, actor) {
     console.log("Filtering polygon features as point centroids...");
 
     return features
@@ -112,11 +110,11 @@ function filterPolygonCentroids(features, activities, center, radius, indoor, ou
                 properties: props
             };
         })
-        .filter(feature => filterFeatures([feature], activities, center, radius, indoor, outdoor, spectator, actor, startDate, endDate)[0]);
+        .filter(feature => filterFeatures([feature], activities, center, radius, indoor, outdoor, spectator, actor)[0]);
 }
 
 // Filter point features with all criteria
-function filterFeatures(features, activities, center, radius, indoor, outdoor, spectator, actor, startDate, endDate) {
+function filterFeatures(features, activities, center, radius, indoor, outdoor, spectator, actor) {
     console.log("Filtering features with advanced criteria...");
 
     return features.filter(feature => {
