@@ -1,6 +1,6 @@
 # LocAround
 
-##Introduction
+## Introduction
 
 Lost in a new city, you are trying to find something to do around? Don't worry LocAround is made for you. 
 Depending on what you wanna do, we suggest you some activities that you can do and how to go to them.
