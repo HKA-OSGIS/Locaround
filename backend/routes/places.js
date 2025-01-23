@@ -32,8 +32,12 @@ router.get('/', async (req, res) => {
   if (type) {
     switch (type) {
       case 'museum':
-        queryPoints += ' AND amenity = $' + (valuesPoints.length + 1);
+        queryPoints += ' AND (amenity = $' + (valuesPoints.length + 1);
         valuesPoints.push('museum');
+        queryPolygons += ' OR tourism = $' + (valuesPolygons.length + 1);
+        valuesPolygons.push('museum');
+        queryPoints += ')';
+        queryPolygons += ')';
         break;
       case 'park':
         queryPoints += ' AND leisure = $' + (valuesPoints.length + 1);
@@ -135,14 +139,6 @@ router.get('/', async (req, res) => {
     }
     queryPoints += ` AND (${conditionsPoints.join(' OR ')})`;
     queryPolygons += ` AND (${conditionsPolygons.join(' OR ')})`;
-  }
-
-  // Filter by date
-  if (date) {
-    queryPoints += ' AND $' + (valuesPoints.length + 1) + ' BETWEEN start_date AND end_date';
-    valuesPoints.push(date);
-    queryPolygons += ' AND $' + (valuesPolygons.length + 1) + ' BETWEEN start_date AND end_date';
-    valuesPolygons.push(date);
   }
 
   try {
