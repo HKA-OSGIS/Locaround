@@ -134,8 +134,8 @@ function filterFeatures(features, activities, center, radius, indoor, outdoor, s
             return false;
         }
 
-        if (indoor && props.indoor !== 'yes') return false;
-        if (outdoor && props.indoor === 'yes') return false;
+        if (indoor && props.indoor !== true ) return false;
+        if (outdoor && props.indoor === true ) return false;
 
         if (spectator && !props.spectator) return false;
         if (actor && !props.actor) return false;
