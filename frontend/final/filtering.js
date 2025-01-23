@@ -1,4 +1,3 @@
-
 //---------------------------------------------
 //Script for the filtering of the OSM locations
 //---------------------------------------------
@@ -25,7 +24,7 @@ async function applyFilters() {
     const radius = parseFloat(document.querySelector('input[name="distance"]').value) || 1000;
 
     if (!departureMarker) {
-        alert("❗ Please set your departure point.");
+        alert("Please set your departure point.");
         return;
     }
 
@@ -45,7 +44,8 @@ async function applyFilters() {
 
     const cqlFilterPolygon = `
       BBOX(way, ${bbox.minLng}, ${bbox.minLat}, ${bbox.maxLng}, ${bbox.maxLat}) AND (
-        (building IN ('public', 'civic', 'commercial', 'retail', 'church', 'school', 'museum', 'stadium', 'landmark'))
+        (building IN ('public', 'civic', 'commercial', 'retail', 'church', 'school', 'museum', 'stadium', 'landmark')) OR
+        (leisure IN ('park', 'garden', 'sports_centre'))
       )
     `;
 
@@ -80,37 +80,25 @@ async function applyFilters() {
     }
 }
 
-// Filter polygon features by converting them to point centroids
+// Filter polygon features directly using centroid data from GeoServer
 function filterPolygonCentroids(features, activities, center, radius, indoor, outdoor, spectator, actor) {
-    console.log("Filtering polygon features as point centroids...");
+    console.log("Filtering polygon features using centroids from GeoServer...");
 
     return features
         .map(feature => {
-            const props = feature.properties;
-
-            let centroidCoords;
-            if (props.centroid && props.centroid.startsWith("POINT")) {
-                const coords = props.centroid.replace("POINT(", "").replace(")", "").split(" ");
-                centroidCoords = [parseFloat(coords[0]), parseFloat(coords[1])];
-
-                if (isNaN(centroidCoords[0]) || isNaN(centroidCoords[1])) {
-                    console.warn("Invalid centroid coordinates, recalculating...");
-                    centroidCoords = turf.centroid(feature).geometry.coordinates;
-                }
+            if (feature.geometry.type === "Point") {
+                const props = feature.properties;
+                return {
+                    type: "Feature",
+                    geometry: feature.geometry, // Use centroid directly from GeoServer
+                    properties: props,
+                };
             } else {
-                centroidCoords = turf.centroid(feature).geometry.coordinates;
+                console.warn("Invalid geometry or missing centroid:", feature);
+                return null;
             }
-
-            return {
-                type: "Feature",
-                geometry: {
-                    type: "Point",
-                    coordinates: centroidCoords
-                },
-                properties: props
-            };
         })
-        .filter(feature => filterFeatures([feature], activities, center, radius, indoor, outdoor, spectator, actor)[0]);
+        .filter(feature => feature !== null); // Remove invalid features
 }
 
 // Filter point features with all criteria
