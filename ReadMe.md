@@ -18,6 +18,7 @@ Depending on what you wanna do, we suggest you some activities that you can do a
 4. Install dependencies/library?
 5. Start the serveur
 6. Inside a browser type *http://localhost:3000* to access the serveur
+     For further explaination, all is detailed in documentation/ LocAround_How to make it work?
 
 ## Main library used
 
