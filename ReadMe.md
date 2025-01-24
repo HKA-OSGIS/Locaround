@@ -15,13 +15,10 @@ Depending on what you wanna do, we suggest you some activities that you can do a
 1. Open the command
 2. `https://github.com/HKA-OSGIS/Locaround.git` Clone the github repository in your computer
 3. `cd LocAround` Open the project folder
-4. Install dependencies/library?
+4. Install dependencies
 5. Start the serveur
 6. Inside a browser type *http://localhost:3000* to access the serveur
-
-## Main library used
-
-- 
+7. For further explaination, all is detailed in documentation/ LocAround_How to make it work?
 
 ## Made by
 
